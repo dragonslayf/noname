@@ -16018,7 +16018,7 @@ const skills = {
 					num = event.juanji_record;
 				const list = [
 					["damage", `令你与一名其他角色各回复${num}点体力，然后对你与其各造成${num}点伤害`],
-					["discard", `弃置至多${num}名其他角色各一张牌，然后你翻面`],
+					["discard", `弃置至多${num}名其他角色各一张牌${player.hasSkill("old_dcjuanji") ? "" : "，然后你翻面"}`],
 					["draw", `摸${num}张牌，然后你弃置等量张牌`],
 				];
 				dialog.add([list, "textbutton"]);
@@ -16143,7 +16143,9 @@ const skills = {
 								for (const target of event.targets) {
 									await player.discardPlayerCard(target, "he", true);
 								}
-								await player.turnOver();
+								if (!player.hasSkill("old_dcjuanji")) {
+									await player.turnOver();
+								}
 								break;
 							}
 							default: {
@@ -16187,7 +16189,7 @@ const skills = {
 						return `令你与一名其他角色各回复${num}点体力，然后对你与其各造成${num}点伤害`;
 					}
 					case "discard": {
-						return `弃置至多${num}名其他角色各一张牌，然后你翻面`;
+						return `弃置至多${num}名其他角色各一张牌${player.hasSkill("old_dcjuanji") ? "" : "，然后你翻面"}`;
 					}
 					default: {
 						return `摸${num}张牌，然后你弃置等量张牌`;
@@ -16251,13 +16253,9 @@ const skills = {
 	},
 	old_dcjuanji: {
 		trigger: {
-			player: ["phaseUseBegin", "phaseDrawBegin", "phaseDiscardBegin"],
+			player: ["phaseDrawBegin", "phaseDiscardBegin"],
 		},
 		filter(event, player) {
-			if (event.name == "phaseUse") {
-				const card = new lib.element.VCard({ name: "sha", isCard: true });
-				return player.hasUseTarget(card, false);
-			}
 			if (event.name == "phaseDiscard") {
 				return player.countCards("h") != player.getHandcardLimit();
 			}
@@ -16269,23 +16267,7 @@ const skills = {
 			event.result =
 				name == "Draw"
 					? await player.chooseBool(get.prompt(event.skill)).set("prompt2", "摸体力上限张牌").forResult()
-					: name == "Use"
-						? await player
-								.chooseTarget(get.prompt(event.skill))
-								.set("prompt2", "失去1点体力并视为对一名角色使用一张【杀】")
-								.set("filterTarget", (event, player, target) => {
-									const card = new lib.element.VCard({ name: "sha", isCard: true });
-									return player.canUse(card, target, false);
-								})
-								.set("ai", target => {
-									const card = new lib.element.VCard({ name: "sha", isCard: true }),
-										player = get.player(),
-										eff1 = get.effect(target, card, player, player),
-										eff2 = get.effect(player, { name: "losehp" }, player, player);
-									return Math.max(0, eff1 - eff2);
-								})
-								.forResult()
-						: await player
+					: await player
 								.chooseCardTarget({
 									filterCard(card, player) {
 										const num = get.event().numx;
@@ -16318,13 +16300,6 @@ const skills = {
 			const name = trigger.name.slice(5);
 			if (name == "Draw") {
 				await player.draw(player.maxHp);
-			} else if (name == "Use") {
-				const {
-					targets: [target],
-				} = event;
-				const card = new lib.element.VCard({ name: "sha", isCard: true });
-				await player.loseHp();
-				await player.useCard(card, target, false);
 			} else {
 				const {
 					cards,
@@ -16340,49 +16315,27 @@ const skills = {
 				}
 			}
 		},
+		group: "dcjuanji",
 	},
 	old_dcrenshuang: {
 		trigger: {
-			player: ["dying", "dyingAfter"],
+			player: "dying",
 		},
 		audio: 2,
-		filter(event, player, name) {
-			if (name == "dyingAfter") {
-				return player.isIn();
-			}
+		filter(event, player) {
 			return game.getRoundHistory("everything", evt => evt.name == "dying" && evt.player == player).indexOf(event) == 0;
 		},
 		forced: true,
 		async content(event, trigger, player) {
-			if (event.triggername == "dying") {
-				await player.recoverTo(1);
-				if (player.getAllHistory("custom", evt => evt.dcrenshuang).length < 3) {
-					player.getHistory("custom").push({
-						dcrenshuang: true,
-					});
-					await player.gainMaxHp();
-				}
-			} else {
-				await player.link(false);
-				await player.turnOver(false);
-				const cards = get.inpileVCardList(info => info[0] == "trick" && player.hasUseTarget(info[2]));
-				if (!cards?.length) {
-					return;
-				}
-				const result = await player
-					.chooseButton(["纫霜：选择要视为使用的牌", [cards, "vcard"]], true)
-					.set("ai", button => {
-						return get.player().getUseValue(button.link[2]);
-					})
-					.forResult();
-				if (result?.bool) {
-					const card = new lib.element.VCard({ name: result.links[0][2], isCard: true });
-					if (player.hasUseTarget(card)) {
-						await player.chooseUseTarget(card, true);
-					}
-				}
+			await player.recoverTo(1);
+			if (player.getAllHistory("custom", evt => evt.dcrenshuang).length < 3) {
+				player.getHistory("custom").push({
+					dcrenshuang: true,
+				});
+				await player.gainMaxHp();
 			}
 		},
+		group: "dcrenshuang",
 	},
 	//谋姜维
 	dcsbjuemou: {
