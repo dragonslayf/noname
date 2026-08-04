@@ -5670,8 +5670,19 @@ const skills = {
 				dialog.add(intronode);
 			},
 		},
-		group: ["olsbzhitian_huogong"],
+		group: ["olsbzhitian_huogong", "olsbzhitian_reset"],
 		subSkill: {
+			reset: {
+				trigger: { global: "roundStart" },
+				forced: true,
+				popup: false,
+				filter(event, player) {
+					return player.countMark("olsbzhitian") > 0;
+				},
+				content(event, trigger, player) {
+					player.removeMark("olsbzhitian", player.countMark("olsbzhitian"), false);
+				},
+			},
 			viewTop: {
 				charlotte: true,
 			},
@@ -5831,7 +5842,7 @@ const skills = {
 				if (!storage) {
 					return `出牌阶段，你可将牌堆顶的一张牌当【火攻】使用，若你以此法未造成伤害，你令〖知天〗可见牌与观看牌数-1（至少减至1），然后你摸两张牌。`;
 				}
-				return `出牌阶段，你可将一种颜色的手牌置入弃牌堆（每种颜色每回合限一次），然后可视为使用其中一张基本牌或普通锦囊牌，若你以此法未造成伤害，你令〖知天〗可见牌与观看牌数-1（至少减至1），然后你摸两张牌。`;
+				return `出牌阶段，你可将一种花色的手牌置入弃牌堆（每种花色每回合限一次），然后可视为使用其中一张基本牌或普通锦囊牌，若你以此法未造成伤害，你令〖知天〗可见牌与观看牌数-1（至少减至1），然后你摸两张牌。`;
 			},
 		},
 		enable: "phaseUse",
@@ -5842,7 +5853,7 @@ const skills = {
 			}
 			if (bool) {
 				const used = player.getStorage("olsbzhijue_used");
-				return player.hasCard(card => !used.includes(get.color(card, player)), "h");
+				return player.hasCard(card => !used.includes(get.suit(card, player)), "h");
 			}
 			return false;
 		},
@@ -5854,12 +5865,12 @@ const skills = {
 					dialog.add([["huogong"], "vcard"]);
 					dialog.direct = true;
 				} else {
-					const colors = player
+					const suits = player
 						.getCards("h")
-						.map(card => get.color(card, player))
+						.map(card => get.suit(card, player))
 						.unique();
-					dialog.addText("请将一种颜色的手牌置入弃牌堆");
-					dialog.add([colors.map(i => [i, get.translation(i)]), "tdnodes"]);
+					dialog.addText("请将一种花色的手牌置入弃牌堆");
+					dialog.add([suits.map(i => [i, get.translation(i)]), "tdnodes"]);
 				}
 				return dialog;
 			},
@@ -5874,14 +5885,14 @@ const skills = {
 					return true;
 				}
 				const player = get.player();
-				return 114514 - player.countCards("h", card => get.color(card, player) == button.link);
+				return 114514 - player.countCards("h", card => get.suit(card, player) == button.link);
 			},
 			backup(links, player) {
 				const bool = player.storage.olsbzhijue;
 				const backup = get.copy(lib.skill[`olsbzhijue_${!bool ? "yang" : "yin"}`]);
 				if (bool) {
 					backup.filterCard = function (card, player) {
-						return get.color(card, player) == links[0];
+						return get.suit(card, player) == links[0];
 					};
 					backup.link = links[0];
 				}
@@ -5907,7 +5918,7 @@ const skills = {
 				charlotte: true,
 				onremove: true,
 				intro: {
-					content: "已置入过的颜色：$",
+					content: "已置入过的花色：$",
 				},
 			},
 			backup: {},
