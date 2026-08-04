@@ -1927,6 +1927,7 @@ const skills = {
 			player: "loseAfter",
 			global: ["gameDrawAfter", "phaseEnd", "equipAfter", "addJudgeAfter", "gainAfter", "loseAsyncAfter", "addToExpansionAfter"],
 		},
+		group: "dcsbguyi_gain",
 		onremove(player, skill) {
 			player.removeGaintag(skill + "_tag");
 		},
@@ -1937,7 +1938,7 @@ const skills = {
 			if (event.name == "gameDraw") {
 				return player.hasCard(card => !card.hasGaintag("dcsbguyi_tag"), "h");
 			}
-			if (player.countMark("dcsbguyi_used") > 2) {
+			if (player.countMark("dcsbguyi_used") > 6) {
 				return false;
 			}
 			const evt = event.getl(player);
@@ -2032,6 +2033,16 @@ const skills = {
 			},
 		},
 		subSkill: {
+			gain: {
+				trigger: { global: "roundEnd" },
+				filter(event, player) {
+					return player.hasRoundHistory("sourceDamage", null, 0);
+				},
+				forced: true,
+				async content(event, trigger, player) {
+					await player.draw({ num: 1, gaintag: ["dcsbguyi_tag"] });
+				},
+			},
 			tag: {},
 			used: { charlotte: true, onremove: true },
 			round: { charlotte: true, onremove: true },
