@@ -300,7 +300,7 @@ const skills = {
 		},
 		direct: true,
 		async content(event, trigger, player) {
-			let result = await player.moveCard(get.prompt2(event.name)).set("logSkill", event.name).forResult();
+			let result = await player.moveCard(get.prompt2(event.name)).set("nojudge", true).set("logSkill", event.name).forResult();
 			if (!result?.bool) {
 				return;
 			}
@@ -528,7 +528,7 @@ const skills = {
 				} else {
 					let result = await target
 						.chooseControl({
-							prompt: "乞施：请选择一项",
+							prompt: "挟众：请选择一项",
 							choiceList: ["摸两张牌并失去1点体力", "将两张牌当【杀】使用"],
 							ai() {
 								const player = get.player();
@@ -566,7 +566,7 @@ const skills = {
 					}
 					const next = target.chooseToUse();
 					next.set("_backupevent", "sxrmxiezhong_backup");
-					next.set("openskilldialog", `###乞施###请将两张牌当作【杀】使用`);
+					next.set("openskilldialog", `###挟众###请将两张牌当作【杀】使用`);
 					next.backup("sxrmxiezhong_backup");
 					next.set("norestore", true);
 					next.set("custom", {
@@ -635,7 +635,7 @@ const skills = {
 					}
 					const next = target.chooseToUse();
 					next.set("_backupevent", "sxrmxiezhong_backup");
-					next.set("openskilldialog", `###乞施###请将两张牌当作【杀】使用`);
+					next.set("openskilldialog", `###挟众###请将两张牌当作【杀】使用`);
 					next.backup("sxrmxiezhong_backup");
 					next.set("norestore", true);
 					next.set("custom", {
@@ -2534,6 +2534,7 @@ const skills = {
 			return 15 - get.value(card);
 		},
 		ai: {
+			combo: "sxrmsuwu",
 			save: true,
 			order(item, player) {
 				const num = game.filterPlayer(current => player != current).reduce((sum, current) => sum + current.countConnectedCards() * -get.sgnAttitude(player, current), 0);
@@ -2835,16 +2836,21 @@ const skills = {
 			if (result?.winner) {
 				const winner = result.winner,
 					loser = [player, target].find(current => current != winner);
-				const dialog = ui.create.dialog("谄谀：是否交换其中一种颜色或类别的所有手牌？", "你的手牌", winner.getCards("h"), `${get.translation(loser)}的手牌`, loser.getCards("h"));
+				const dialog = [`###谄谀###<div class='text center'>你可以交换你与${get.translation(loser)}其中一种颜色或类别的所有手牌</div>`, `你的手牌`, winner.getCards("h"), `${get.translation(loser)}的手牌`, loser.getCards("h")];
+				const list1 = Object.keys(lib.color).filter(color => [winner, loser].some(current => current.hasCards("h", card => get.color(card) == color)));
+				const list2 = lib.inpile
+					.map(name => get.type2(name))
+					.toUniqued()
+					.filter(type => [winner, loser].some(current => current.hasCards("h", card => get.type2(card) == type)));
 				const result2 = await winner
-					.chooseControl("red", "black", "basic", "equip", "trick", "cancel2")
+					.chooseControl(list1.concat(list2), "cancel2")
 					.set("dialog", dialog)
 					.set("ai", () => get.event().resultx)
 					.set(
 						"resultx",
 						(() => {
 							const getFilter = (card, key) => {
-								if (["red", "black"].includes(key)) {
+								if (list1.includes(key)) {
 									return get.color(card) == key;
 								}
 								return get.type2(card) == key;
@@ -2868,7 +2874,7 @@ const skills = {
 								}
 								return sum2 - sum1;
 							};
-							return ["red", "black", "basic", "equip", "trick", "cancel2"].maxBy(getV);
+							return list1.addArray([list2, "cancel2"]).maxBy(getV);
 						})()
 					)
 					.forResult();
@@ -2876,7 +2882,7 @@ const skills = {
 					const control = result2.control,
 						getC = current => {
 							return current.getCards("h", card => {
-								if (["red", "black"].includes(control)) {
+								if (list1.includes(control)) {
 									return get.color(card) == control;
 								}
 								return get.type2(card) == control;
@@ -3227,7 +3233,7 @@ const skills = {
 		},
 	},
 	//疑包
-	//曹操 -by.柴油鹿鹿
+	//曹操
 	sxrmkuxin: {
 		audio: 2,
 		trigger: { player: "damageEnd" },
@@ -3852,7 +3858,6 @@ const skills = {
 		filter(event, player) {
 			return player.countCards("hes") >= 2;
 		},
-		audio: true,
 		prompt: "将两张牌当刺【杀】使用或打出",
 		async precontent(event, trigger, player) {
 			player
@@ -4112,9 +4117,7 @@ const skills = {
 	//伏寿
 	sxrmmitu: {
 		audio: 2,
-		trigger: {
-			player: "phaseZhunbeiBegin",
-		},
+		trigger: { player: "phaseZhunbeiBegin" },
 		filter(event, player) {
 			return game.hasPlayer(current => current.isDamaged());
 		},
@@ -4141,6 +4144,7 @@ const skills = {
 				target.addTempSkill("sxrmmitu_ai", "phaseChange");
 			}
 			for (const target of event.targets) {
+				if (!player.isIn()) return;
 				if (!game.hasPlayer(current => target.canCompare(current))) {
 					continue;
 				}

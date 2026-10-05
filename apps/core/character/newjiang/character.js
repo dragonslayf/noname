@@ -144,6 +144,7 @@ const characters = {
 		hp: 3,
 		skills: ["sangu", "yizu"],
 		names: "诸葛|尚",
+		clans: ["琅琊诸葛氏"],
 	},
 	kebineng: {
 		sex: "male",
@@ -177,9 +178,10 @@ const characters = {
 	yj_xuangongzhu: {
 		sex: "female",
 		group: "wei",
-		hp: 3,
+		hp: 4,
 		skills: ["yjqimei", "yjzhuiji"],
 		names: "司马|null",
+		groupBorder: "jin",
 	},
 	xukun: {
 		sex: "male",
